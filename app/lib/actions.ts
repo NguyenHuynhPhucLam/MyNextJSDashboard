@@ -4,6 +4,8 @@ import {z} from 'zod';
 import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -117,3 +119,25 @@ export async function deleteInvoice(id: string) {
     }
     revalidatePath('/dashboard/invoices');
 }
+
+export async function authenticate(
+    prevState: string | undefined,
+    formData: FormData,
+  ) {
+    try {
+      // Attempt to sign in with 'credentials' provider
+      await signIn('credentials', formData);
+    } catch (error) {
+      // Kiểm tra nếu lỗi là đối tượng Error
+      if (error instanceof Error) {
+        // Kiểm tra lỗi cụ thể và trả về thông báo lỗi
+        if (error.message.includes('CredentialsSignin')) {
+          return 'Invalid credentials.';
+        }
+        return 'Something went wrong.';
+      }
+      // Nếu lỗi không phải là instance của Error, ném lỗi lên trên
+      throw error;
+    }
+  }
+  
